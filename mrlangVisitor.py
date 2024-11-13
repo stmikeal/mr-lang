@@ -24,11 +24,6 @@ class mrlangVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by mrlangParser#logicExpr.
-    def visitLogicExpr(self, ctx:mrlangParser.LogicExprContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by mrlangParser#varDecl.
     def visitVarDecl(self, ctx:mrlangParser.VarDeclContext):
         return self.visitChildren(ctx)
@@ -56,6 +51,31 @@ class mrlangVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by mrlangParser#rawAssigment.
     def visitRawAssigment(self, ctx:mrlangParser.RawAssigmentContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by mrlangParser#idName.
+    def visitIdName(self, ctx:mrlangParser.IdNameContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by mrlangParser#numParsed.
+    def visitNumParsed(self, ctx:mrlangParser.NumParsedContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by mrlangParser#stringParsed.
+    def visitStringParsed(self, ctx:mrlangParser.StringParsedContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by mrlangParser#boolParsed.
+    def visitBoolParsed(self, ctx:mrlangParser.BoolParsedContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by mrlangParser#aritOperator.
+    def visitAritOperator(self, ctx:mrlangParser.AritOperatorContext):
         return self.visitChildren(ctx)
 
 

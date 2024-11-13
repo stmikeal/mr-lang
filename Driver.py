@@ -2,8 +2,7 @@ import sys
 from antlr4 import *
 from mrlangLexer import mrlangLexer
 from mrlangParser import mrlangParser
-from mrlangListener import mrlangListener
-from mrlangVisitor import mrlangVisitor
+from VisitorInterpret import VisitorInterpret
 
 def main(argv):
     # input_stream = FileStream(argv[1])
@@ -15,11 +14,8 @@ def main(argv):
     if parser.getNumberOfSyntaxErrors() > 0:
         print("syntax errors")
     else:
-        vinterp = mrlangVisitor()
+        vinterp = VisitorInterpret()
         vinterp.visit(tree)
-        linterp = mrlangListener()
-        walker = ParseTreeWalker()
-        walker.walk(linterp, tree)
 
 if __name__ == '__main__':
     main(sys.argv)

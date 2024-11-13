@@ -5,10 +5,13 @@ mnogostrochnyj
 kommentarij
 */
 
-schetnoe a = 10;
-schetnoe b = 20;
+schetnoe a = -10;
+schetnoe b;
+b = 20;
 slovesnoe ime = "Primer";
 dvoyakoe ist = dobro;
+
+povedati(ime);
 
 a = a + 5;
 b = b - 3;

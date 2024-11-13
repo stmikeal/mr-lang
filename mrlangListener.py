@@ -35,15 +35,6 @@ class mrlangListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by mrlangParser#logicExpr.
-    def enterLogicExpr(self, ctx:mrlangParser.LogicExprContext):
-        pass
-
-    # Exit a parse tree produced by mrlangParser#logicExpr.
-    def exitLogicExpr(self, ctx:mrlangParser.LogicExprContext):
-        pass
-
-
     # Enter a parse tree produced by mrlangParser#varDecl.
     def enterVarDecl(self, ctx:mrlangParser.VarDeclContext):
         pass
@@ -95,6 +86,51 @@ class mrlangListener(ParseTreeListener):
 
     # Exit a parse tree produced by mrlangParser#rawAssigment.
     def exitRawAssigment(self, ctx:mrlangParser.RawAssigmentContext):
+        pass
+
+
+    # Enter a parse tree produced by mrlangParser#idName.
+    def enterIdName(self, ctx:mrlangParser.IdNameContext):
+        pass
+
+    # Exit a parse tree produced by mrlangParser#idName.
+    def exitIdName(self, ctx:mrlangParser.IdNameContext):
+        pass
+
+
+    # Enter a parse tree produced by mrlangParser#numParsed.
+    def enterNumParsed(self, ctx:mrlangParser.NumParsedContext):
+        pass
+
+    # Exit a parse tree produced by mrlangParser#numParsed.
+    def exitNumParsed(self, ctx:mrlangParser.NumParsedContext):
+        pass
+
+
+    # Enter a parse tree produced by mrlangParser#stringParsed.
+    def enterStringParsed(self, ctx:mrlangParser.StringParsedContext):
+        pass
+
+    # Exit a parse tree produced by mrlangParser#stringParsed.
+    def exitStringParsed(self, ctx:mrlangParser.StringParsedContext):
+        pass
+
+
+    # Enter a parse tree produced by mrlangParser#boolParsed.
+    def enterBoolParsed(self, ctx:mrlangParser.BoolParsedContext):
+        pass
+
+    # Exit a parse tree produced by mrlangParser#boolParsed.
+    def exitBoolParsed(self, ctx:mrlangParser.BoolParsedContext):
+        pass
+
+
+    # Enter a parse tree produced by mrlangParser#aritOperator.
+    def enterAritOperator(self, ctx:mrlangParser.AritOperatorContext):
+        pass
+
+    # Exit a parse tree produced by mrlangParser#aritOperator.
+    def exitAritOperator(self, ctx:mrlangParser.AritOperatorContext):
         pass
 
 

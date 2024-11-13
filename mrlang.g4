@@ -12,26 +12,26 @@ stmt:
 
 expr:
 	'(' expr ')'
-	| expr (PLUS | MINUS | MUL | SLASH) expr
-	| logicExpr
-	| ID
-	| NUM
-	| STRING;
-
-logicExpr:
-	'(' expr ')'
-	| logicExpr compOperator logicExpr
-	| ID
-	| BOOL
-	| NUM;
+	| expr aritOperator expr
+	| expr compOperator expr
+	| MINUS expr
+	| boolParsed
+	| idName
+	| numParsed
+	| stringParsed;
 
 varDecl: (rawVarDecl | filledVarDecl) ';';
-rawVarDecl: typeName ID;
-filledVarDecl: typeName ID ASSIGN expr;
+rawVarDecl: typeName idName;
+filledVarDecl: typeName idName ASSIGN expr;
 typeName: 'schetnoe' | 'slovesnoe' | 'dvoyakoe';
 
 assignment: rawAssigment ';';
 rawAssigment: ID ASSIGN expr;
+idName: ID;
+numParsed: NUM;
+stringParsed: STRING;
+boolParsed: BOOL;
+aritOperator: PLUS | MINUS | MUL | SLASH;
 compOperator:
 	LESS
 	| LESS_OR_EQUAL
@@ -49,9 +49,8 @@ elifstmt: 'inakoezheli' '(' expr ')' stmt;
 elsestmt: 'inako' stmt;
 whilestmt: 'dokole' '(' expr ')' stmt;
 forstmt:
-	'krugoverty' '(' filledVarDecl ';' logicExpr ';' rawAssigment ')' stmt;
+	'krugoverty' '(' filledVarDecl ';' expr ';' rawAssigment ')' stmt;
 
-ID: [a-zA-Z_] [a-zA-Z_0-9]*;
 NUM: [0-9]+;
 BOOL: ('dobro' | 'lzha');
 STRING: '"' ~[\r\n]* '"';
@@ -68,7 +67,8 @@ OR: '||';
 LESS_OR_EQUAL: '<=';
 GREATER: '>';
 GREATER_OR_EQUAL: '>=';
+ID: [a-zA-Z_] [a-zA-Z_0-9]*;
 
 SPACE: [ \r\n\t]+ -> skip;
 LINE_COMMENT: '//' ~[\n\r]* -> skip;
-MULTILINE_COMMENT: '/*' ~[\r]* '*/' -> skip;
+MULTILINE_COMMENT: '/*' .*? '*/' -> skip;
