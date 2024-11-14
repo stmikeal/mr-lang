@@ -104,7 +104,7 @@ class VisitorInterpret(mrlangVisitor):
     def visitRawAssigment(self, ctx:mrlangParser.RawAssigmentContext):
         val = self.names[ctx.getChild(0).getText()]
         new_val = self.visit(ctx.getChild(2))
-        if (val["type"] != val["type"]):
+        if (val["type"] != new_val["type"]):
             raise ValueError("Неправильное присвоение переменной")
         self.names[ctx.getChild(0).getText()] = new_val
         return 0
