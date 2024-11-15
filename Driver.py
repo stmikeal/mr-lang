@@ -3,6 +3,7 @@ from antlr4 import *
 from mrlangLexer import mrlangLexer
 from mrlangParser import mrlangParser
 from VisitorInterpret import VisitorInterpret
+from VisitorCompile import VisitorCompile
 
 def main(argv):
     # input_stream = FileStream(argv[1])
