@@ -5,13 +5,13 @@ mnogostrochnyj
 kommentarij
 */
 
-schetnoe a = -10;
+schetnoe a = 10;
 schetnoe b;
 b = 20;
-slovesnoe ime = "Primer";
+//slovesnoe ime = "Primer";
 dvoyakoe ist = dobro;
 
-povedati(ime);
+//povedati(ime);
 
 a = a + 5;
 b = b - 3;
@@ -32,6 +32,7 @@ konchaem
 krugoverty (schetnoe i = 0; i < 5; i = i + 1) startuem
     povedati(i);
 konchaem
+/*
 
 ist = a > 5 && b <= 30;
 povedati(ist);
@@ -41,3 +42,4 @@ ezheli ((a + b) > 30) startuem
 konchaem inako startuem
     povedati("Summa ne bolshe 30");
 konchaem
+*/

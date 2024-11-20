@@ -7,7 +7,7 @@ from VisitorCompile import VisitorCompile
 
 def main(argv):
     # input_stream = FileStream(argv[1])
-    input_stream = FileStream("example.mr")
+    input_stream = FileStream("mr-lang/example.mr")
     lexer = mrlangLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = mrlangParser(stream)
@@ -15,8 +15,8 @@ def main(argv):
     if parser.getNumberOfSyntaxErrors() > 0:
         print("syntax errors")
     else:
-        vinterp = VisitorInterpret()
-        vinterp.visit(tree)
+        vinterp = VisitorCompile()
+        print(vinterp.visit(tree))
 
 if __name__ == '__main__':
     main(sys.argv)

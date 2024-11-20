@@ -2,196 +2,194 @@ from antlr4 import *
 from mrlangParser import mrlangParser
 from mrlangVisitor import mrlangVisitor
 
-def prepareVal(value, type):
-    return {"value": value, "type": type}
 
 class VisitorCompile(mrlangVisitor):
     def __init__(self):
-        self.names = dict()
+        self.code = []
+        self.variables = {}
+        self.current_address = 0
+        self.label_counter = 0
+        self.free_regs = [1,1,1,1,1,1,1]
 
-    def visitProgram(self, ctx:mrlangParser.ProgramContext):
-        for i in range(0, ctx.getChildCount()):
-            self.visit(ctx.getChild(i))
+    def free_reg(self, idx):
+        self.free_regs[idx] = 1
+
+    def get_free_reg(self):
+        for i in range(len(self.free_regs)):
+            if self.free_regs[i]:
+                self.free_regs[i] = 0
+                return i
+        self.free_regs = [1,1,1,1,1,1,1]
         return 0
 
-    def visitStmt(self, ctx:mrlangParser.StmtContext):
-        return self.visit(ctx.getChild(0))
+    def new_label(self, prefix="L"):
+        self.label_counter += 1
+        return f"{prefix}{self.label_counter}"
 
+    def emit(self, instruction):
+        self.code.append(instruction)
 
-    def visitExpr(self, ctx:mrlangParser.ExprContext):
-        if (ctx.getChild(0).getText() == '('):
-            return self.visit(ctx.getChild(1))
-        if (ctx.getChildCount() == 3):
-            op = self.visit(ctx.getChild(1))
+    def visitProgram(self, ctx: mrlangParser.ProgramContext):
+        for i in range(ctx.getChildCount()):
+            self.visit(ctx.getChild(i))
+        return "".join(self.code)
+
+    def visitVarDecl(self, ctx: mrlangParser.VarDeclContext):
+        if isinstance(ctx.getChild(0), mrlangParser.RawVarDeclContext):
+            self.visitRawVarDecl(ctx.getChild(0))
+        elif isinstance(ctx.getChild(0), mrlangParser.FilledVarDeclContext):
+            self.visitFilledVarDecl(ctx.getChild(0))
+
+    def visitRawVarDecl(self, ctx: mrlangParser.RawVarDeclContext):
+        typename = ctx.getChild(0).getText()
+        name = ctx.getChild(1).getText()
+        self.variables[name] = self.current_address
+        self.emit(f"# Объявление переменной {name} типа {typename}\n")
+        self.current_address += 4
+
+    def visitFilledVarDecl(self, ctx: mrlangParser.FilledVarDeclContext):
+        typename = ctx.getChild(0).getText()
+        name = ctx.getChild(1).getText()
+        self.variables[name] = self.current_address
+        value = self.visit(ctx.getChild(3))
+        self.emit(f"# Объявление и инициализация переменной {name} типа {typename}\n")
+        self.emit(f"sw {value}, {self.current_address}(zero)\n")
+        self.current_address += 4
+        self.free_reg(int(value[1]))
+
+    def visitAssignment(self, ctx: mrlangParser.AssignmentContext):
+        self.visitRawAssigment(ctx.getChild(0))
+
+    def visitRawAssigment(self, ctx: mrlangParser.RawAssigmentContext):
+        name = ctx.getChild(0).getText()
+        if name not in self.variables:
+            raise ValueError(f"Переменная {name} не объявлена\n")
+        address = self.variables[name]
+        value = self.visit(ctx.getChild(2))
+        self.emit(f"# Присваивание переменной {name}\n")
+        self.emit(f"sw {value}, {address}(zero)\n")
+        self.free_reg(int(value[1]))
+
+    def visitExpr(self, ctx: mrlangParser.ExprContext):
+        if ctx.getChildCount() == 1:
+            return self.visit(ctx.getChild(0))
+        elif ctx.getChildCount() == 3:
             left = self.visit(ctx.getChild(0))
-            if (left["type"] == "string"):
-                raise ValueError("Left operand is string.")
             right = self.visit(ctx.getChild(2))
-            if (right["type"] == "string"):
-                raise ValueError("Right operand is string.")
-            if (op == "+"):
-                return prepareVal(int(left["value"]) + int(right["value"]), "int")
-            if (op == "-"):
-                return prepareVal(int(left["value"]) - int(right["value"]), "int")
-            if (op == "*"):
-                return prepareVal(int(left["value"]) * int(right["value"]), "int")
-            if (op == "/"):
-                if (int(right["value"]) == 0):
-                    raise ValueError("ZeroDevision occured")
-                return prepareVal(int(left["value"]) // int(right["value"]), "int")
-            if (op == "<"):
-                return prepareVal(int(left["value"]) < int(right["value"]), "bool")
-            if (op == "<="):
-                return prepareVal(int(left["value"]) <= int(right["value"]), "bool")
-            if (op == "=="):
-                if (left["type"] == "int" and right["type"] == "int"):
-                    return prepareVal(int(left["value"]) == int(right["value"]), "bool")
-                else:
-                    return prepareVal(bool(left["value"]) == bool(right["value"]), "bool")
-            if (op == "!="):
-                if (left["type"] == "int" and right["type"] == "int"):
-                    return prepareVal(int(left["value"]) != int(right["value"]), "bool")
-                else:
-                    return prepareVal(bool(left["value"]) != bool(right["value"]), "bool")
-            if (op == ">"):
-                return prepareVal(int(left["value"]) > int(right["value"]), "bool")
-            if (op == ">="):
-                return prepareVal(int(left["value"]) >= int(right["value"]), "bool")
-            if (op == "&&"):
-                return prepareVal(bool(left["value"]) < bool(right["value"]), "bool")
-            if (op == "||"):
-                return prepareVal(bool(left["value"]) < bool(right["value"]), "bool")
-        val = self.visit(ctx.getChild(1)) if (ctx.getChildCount() == 2) else self.visit(ctx.getChild(0))
-        if (val["value"] == None):
-            raise ValueError("Использована не инциализированная переменная")
-        if (ctx.getChildCount() == 2 and val["type"] == "int"):
-            val["value"] = int(-val["value"]);
-        if (ctx.getChildCount() == 2 and val["type"] == "bool"):
-            val["value"] = bool(not val["value"]);
-        if (ctx.getChildCount() == 2 and val["type"] == "string"):
-            raise ValueError("Нельзя инвертировать строки по значению")
-        return val;
+            operator = ctx.getChild(1).getText()
+            temp_reg = f"t{self.get_free_reg()}"
+            if operator == "+":
+                self.emit(f"add {temp_reg}, {left}, {right}\n")
+            elif operator == "-":
+                self.emit(f"sub {temp_reg}, {left}, {right}\n")
+            elif operator == "*":
+                self.emit(f"mul {temp_reg}, {left}, {right}\n")
+            elif operator == "/":
+                self.emit(f"div {temp_reg}, {left}, {right}\n")
+            elif operator == ">":
+                self.emit(f"sgt {temp_reg}, {left}, {right}\n")
+            elif operator == "<":
+                self.emit(f"slt {temp_reg}, {left}, {right}\n")
+            elif operator == "==":
+                self.emit(f"xor {temp_reg}, {left}, {right}\n")
+                self.emit(f"seqz {temp_reg}, {temp_reg}\n")
+            self.free_reg(int(left[1]))
+            self.free_reg(int(right[1]))
+            return temp_reg
+        return self.visit(ctx.getChild(1)) if (ctx.getChildCount() == 2) else self.visit(ctx.getChild(0))
 
-
-    def visitVarDecl(self, ctx:mrlangParser.VarDeclContext):
-        return self.visit(ctx.getChild(0))
-
-
-    def visitRawVarDecl(self, ctx:mrlangParser.RawVarDeclContext):
-        self.names[ctx.getChild(1).getText()] = prepareVal(None, self.visit(ctx.getChild(0)))
-        return 0
-
-    def visitFilledVarDecl(self, ctx:mrlangParser.FilledVarDeclContext):
-        val = self.visit(ctx.getChild(3))
-        typename = self.visit(ctx.getChild(0))
-        if (typename != val["type"]):
-            raise ValueError("Неправильная инициализация переменной")
-        self.names[ctx.getChild(1).getText()] = val
-        return 0
-
-
-    def visitTypeName(self, ctx:mrlangParser.TypeNameContext):
-        if (ctx.getText() == "schetnoe"):
-            return "int"
-        if (ctx.getText() == "slovesnoe"):
-            return "string"
-        if (ctx.getText() == "dvoyakoe"):
-            return "bool"
-
-    def visitAssignment(self, ctx:mrlangParser.AssignmentContext):
-        return self.visit(ctx.getChild(0))
-
-    def visitRawAssigment(self, ctx:mrlangParser.RawAssigmentContext):
-        val = self.names[ctx.getChild(0).getText()]
-        new_val = self.visit(ctx.getChild(2))
-        if (val["type"] != new_val["type"]):
-            raise ValueError("Неправильное присвоение переменной")
-        self.names[ctx.getChild(0).getText()] = new_val
-        return 0
+    def visitNumParsed(self, ctx: mrlangParser.NumParsedContext):
+        value = ctx.getText()
+        temp_reg = f"t{self.get_free_reg()}"
+        self.emit(f"li {temp_reg}, {value}\n")
+        return temp_reg
     
-    def visitIdName(self, ctx:mrlangParser.IdNameContext):
-        return self.names[ctx.getText()]
+    def visitBoolParsed(self, ctx: mrlangParser.NumParsedContext):
+        value = 1 if ctx.getText() == "dobro" else 0
+        temp_reg = f"t{self.get_free_reg()}" 
+        self.emit(f"li {temp_reg}, {value}\n")
+        return temp_reg
 
-    def visitNumParsed(self, ctx:mrlangParser.NumParsedContext):
-        return prepareVal(int(ctx.getText()), "int")
-    
-    def visitBoolParsed(self, ctx:mrlangParser.BoolParsedContext):
-        if (ctx.getText() == "dobro"):
-            return prepareVal(True, "bool")
-        elif (ctx.getText() == "lzha"):
-            return prepareVal(False, "bool")
+    def visitIdName(self, ctx: mrlangParser.IdNameContext):
+        name = ctx.getText()
+        if name not in self.variables:
+            raise ValueError(f"Переменная {name} не объявлена\n")
+        address = self.variables[name]
+        temp_reg = f"t{self.get_free_reg()}"
+        self.emit(f"lw {temp_reg}, {address}(zero)\n")
+        return temp_reg
 
-    def visitStringParsed(self, ctx:mrlangParser.StringParsedContext):
-        return prepareVal(str(ctx.getText()), "string")
-    
-    def visitAritOperator(self, ctx:mrlangParser.AritOperatorContext):
-        return ctx.getText()
-
-    def visitCompOperator(self, ctx:mrlangParser.CompOperatorContext):
-        return ctx.getText()
-
-
-    def visitPrint(self, ctx:mrlangParser.PrintContext):
-        val = self.visit(ctx.getChild(2))
-        if (val["type"] == "bool"):
-            print("dobro" if val["value"] else "lzha")
-        else:
-            print(val["value"])
-        return 0
+    def visitPrint(self, ctx: mrlangParser.PrintContext):
+        value = self.visit(ctx.getChild(2))
+        self.emit(f"# Вывод значения {value}\n")
+        self.emit(f"mv a0, {value}\n")  # Передаём значение в регистр a0
+        self.emit("li a7, 1\n")  # Код системного вызова для печати
+        self.emit("ecall\n")  # Вызов системного вызова
 
 
-    def visitBlockstmt(self, ctx:mrlangParser.BlockstmtContext):
-        for i in range(1, ctx.getChildCount()-1):
-            self.visit(ctx.getChild(i))
-        return 0
+    def visitWhilestmt(self, ctx: mrlangParser.WhilestmtContext):
+        loop_label = self.new_label("WHILE_LOOP")
+        end_label = self.new_label("WHILE_END")
 
-    def visitIfstmt(self, ctx:mrlangParser.IfstmtContext):
-        valpred = self.visit(ctx.getChild(2))
-        if (valpred["type"] == "string"):
-            raise ValueError("Строка не может быть предикатом")
-        pred = bool(valpred["value"])
-        if (pred):
-            return self.visit(ctx.getChild(4))
+        self.emit(f"{loop_label}: # Начало while\n")
+        condition = self.visit(ctx.getChild(2))  # Условие
+        self.emit(f"beqz {condition}, {end_label}\n")
+
+        self.visit(ctx.getChild(4))  # Тело цикла
+        self.emit(f"j {loop_label}\n")
+        self.emit(f"{end_label}: # Конец while\n")
+
+    def visitForstmt(self, ctx: mrlangParser.ForstmtContext):
+        init_label = self.new_label("FOR_INIT")
+        loop_label = self.new_label("FOR_LOOP")
+        end_label = self.new_label("FOR_END")
+
+        # Инициализация
+        self.visit(ctx.getChild(2))  # Объявление переменной
+        self.emit(f"{init_label}: # Начало for\n")
+        condition = self.visit(ctx.getChild(4)) 
+        self.emit(f"beqz {condition}, {end_label}\n")
+
+        # Тело цикла
+        self.visit(ctx.getChild(8))
+        
+        # Инкремент
+        self.visit(ctx.getChild(6))
+        self.emit(f"j {init_label}\n")
+        self.emit(f"{end_label}: # Конец for\n")
+
+    def visitIfstmt(self, ctx: mrlangParser.IfstmtContext):
+        cond_label = self.new_label("IF_COND")
+        end_label = self.new_label("IF_END")
+
+        condition = self.visit(ctx.getChild(2))
+        self.emit(f"# Условие if\n")
+        self.emit(f"beqz {condition}, {cond_label}\n")
+
+        self.visit(ctx.getChild(4))
+        self.emit(f"j {end_label}\n")
+
+        self.emit(f"{cond_label}:\n")
         for i in range(5, ctx.getChildCount()):
-            if (self.visit(ctx.getChild(i))):
-                break
-        return pred
+            elif_label = self.visit(ctx.getChild(i))
+            if (isinstance(ctx.getChild(i), mrlangParser.ElifstmtContext)):
+                self.emit(f"j {end_label}\n")
+                self.emit(f"{elif_label}:\n")
 
-    def visitElifstmt(self, ctx:mrlangParser.ElifstmtContext):
-        valpred = self.visit(ctx.getChild(2))
-        if (valpred["type"] == "string"):
-            raise ValueError("Строка не может быть предикатом")
-        pred = bool(valpred["value"])
-        if (pred):
-            return self.visit(ctx.getChild(4))
-        return pred
+        self.emit(f"{end_label}:\n")
 
+    def visitElifstmt(self, ctx: mrlangParser.ElifstmtContext):
+        next_label = self.new_label("ELIF_NEXT")
 
-    def visitElsestmt(self, ctx:mrlangParser.ElsestmtContext):
-        return self.visit(ctx.getChild(1))
+        # Условие elif
+        condition = self.visit(ctx.getChild(2))
+        self.emit(f"# Условие elif\n")
+        self.emit(f"beqz {condition}, {next_label}\n")
 
+        # Тело elif
+        self.visit(ctx.getChild(4))
+        return next_label
 
-    def visitWhilestmt(self, ctx:mrlangParser.WhilestmtContext):
-        valpred = self.visit(ctx.getChild(2))
-        if (valpred["type"] == "string"):
-            raise ValueError("Строка не может быть предикатом")
-        while(valpred["value"]):
-            self.visit(ctx.getChild(4))
-            valpred = self.visit(ctx.getChild(2))
-            if (valpred["type"] == "string"):
-                raise ValueError("Строка не может быть предикатом")
-        return 0
-
-
-    def visitForstmt(self, ctx:mrlangParser.ForstmtContext):
-        self.visit(ctx.getChild(2))
-        valpred = self.visit(ctx.getChild(4))
-        if (valpred["type"] == "string"):
-            raise ValueError("Строка не может быть предикатом")
-        while(valpred["value"]):
-            self.visit(ctx.getChild(8))
-            self.visit(ctx.getChild(6))
-            valpred = self.visit(ctx.getChild(4))
-            if (valpred["type"] == "string"):
-                raise ValueError("Строка не может быть предикатом")
-        return 0
+    def visitElsestmt(self, ctx: mrlangParser.ElsestmtContext):
+        self.emit(f"# Тело else\n")
+        self.visit(ctx.getChild(1))
