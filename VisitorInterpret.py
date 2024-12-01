@@ -70,7 +70,7 @@ class VisitorInterpret(mrlangVisitor):
             val["value"] = bool(not val["value"]);
         if (ctx.getChildCount() == 2 and val["type"] == "string"):
             raise ValueError("Нельзя инвертировать строки по значению")
-        return val;
+        return val
 
 
     def visitVarDecl(self, ctx:mrlangParser.VarDeclContext):
