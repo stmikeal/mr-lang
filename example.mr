@@ -17,13 +17,13 @@ ist = (a > 5) && (b <= 30);
 a = a + 5 * 3;
 b = b - 3;
 
-/*
+
 ezheli (a > b) startuem
-    //povedati("a > b");
+    povedati("a > b");
 konchaem inakoezheli (a == b) startuem
-    //povedati("a == b");
+    povedati("a == b");
 konchaem inako startuem
-    //povedati("b > a");
+    povedati("b > a");
 konchaem
 
 dokole (a < 20) startuem
@@ -38,8 +38,7 @@ konchaem
 povedati(ist);
 
 ezheli ((a + b) > 30) startuem
-    //povedati("Summa bolshe 30");
+    povedati("Summa bolshe 30");
 konchaem inako startuem
-    //povedati("Summa ne bolshe 30");
+    povedati("Summa ne bolshe 30");
 konchaem
-*/

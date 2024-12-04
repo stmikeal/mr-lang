@@ -10,7 +10,7 @@ class VisitorCompile(mrlangVisitor):
     def __init__(self):
         self.code = []
         self.variables = {}
-        self.current_address = 0x80
+        self.current_address = 0x200
         self.label_counter = 0
         self.free_regs = [1 for _ in range(32)]
 
@@ -225,21 +225,46 @@ class VisitorCompile(mrlangVisitor):
     def visitPrint(self, ctx: mrlangParser.PrintContext):
         value = self.visit(ctx.getChild(2))
         res_reg = self.parseExpression(value["value"])
+        temp_reg = f"x{self.get_free_reg()}" 
         
         if (value["type"] == "string"):
             loop_label = self.new_label("PRINT_START")
             end_label = self.new_label("PRINT_END") 
             self.emit(f"{loop_label}:\n")
-            self.emit(f"lw x31, {res_reg}, 0\n")
-            self.emit(f"beq x31, x0, {end_label}\n")
-            self.emit(f"ewrite x31\n")
+            self.emit(f"lw {temp_reg}, {res_reg}, 0\n")
+            self.emit(f"beq {temp_reg}, x0, {end_label}\n")
+            self.emit(f"ewrite {temp_reg}\n")
             self.emit(f"addi {res_reg}, {res_reg}, 1\n")
             self.emit(f"jal x0, {loop_label}\n")
             self.emit(f"{end_label}:\n")
         elif (value["type"] == "int"):
-            pass
+            self.emit(f"iwrite {res_reg}\n")
         elif (value["type"] == "bool"):
-            pass
+            if (value["value"] == 0):
+                self.emit(f"li {temp_reg}, {ord('l')}\n")
+                self.emit(f"ewrite {temp_reg}\n")
+                self.emit(f"li {temp_reg}, {ord('z')}\n")
+                self.emit(f"ewrite {temp_reg}\n")
+                self.emit(f"li {temp_reg}, {ord('h')}\n")
+                self.emit(f"ewrite {temp_reg}\n")
+                self.emit(f"li {temp_reg}, {ord('a')}\n")
+                self.emit(f"ewrite {temp_reg}\n")
+            else:
+                self.emit(f"li {temp_reg}, {ord('d')}\n")
+                self.emit(f"ewrite {temp_reg}\n")
+                self.emit(f"li {temp_reg}, {ord('o')}\n")
+                self.emit(f"ewrite {temp_reg}\n")
+                self.emit(f"li {temp_reg}, {ord('b')}\n")
+                self.emit(f"ewrite {temp_reg}\n")
+                self.emit(f"li {temp_reg}, {ord('r')}\n")
+                self.emit(f"ewrite {temp_reg}\n")
+                self.emit(f"li {temp_reg}, {ord('o')}\n")
+                self.emit(f"ewrite {temp_reg}\n")
+
+        self.emit(f"li {temp_reg}, {10}\n")
+        self.emit(f"ewrite {temp_reg}\n")
+
+        self.free_reg(int(temp_reg[1]))
         self.free_reg(int(res_reg[1]))
 
 

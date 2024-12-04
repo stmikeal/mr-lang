@@ -17,7 +17,6 @@ def main(argv):
     else:
         vinterp = VisitorCompile()
         print(vinterp.visit(tree))
-        print(vinterp.free_regs)
 
 if __name__ == '__main__':
     main(sys.argv)
