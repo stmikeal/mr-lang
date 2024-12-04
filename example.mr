@@ -5,7 +5,7 @@ mnogostrochnyj
 kommentarij
 */
 
-schetnoe a = 10;
+schetnoe a = -10;
 schetnoe b;
 b = 20;
 slovesnoe ime = "Primer";

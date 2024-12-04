@@ -3,6 +3,9 @@ from mrlangParser import mrlangParser
 from mrlangVisitor import mrlangVisitor
 import re
 
+def prepareVal(value, type):
+    return {"value": value, "type": type}
+
 class VisitorCompile(mrlangVisitor):
     def __init__(self):
         self.code = []
@@ -36,16 +39,12 @@ class VisitorCompile(mrlangVisitor):
         return "".join(self.code)
 
     def visitVarDecl(self, ctx: mrlangParser.VarDeclContext):
-        if isinstance(ctx.getChild(0), mrlangParser.RawVarDeclContext):
-            self.visitRawVarDecl(ctx.getChild(0))
-        elif isinstance(ctx.getChild(0), mrlangParser.FilledVarDeclContext):
-            self.visitFilledVarDecl(ctx.getChild(0))
+        self.visit(ctx.getChild(0))
 
     def visitRawVarDecl(self, ctx: mrlangParser.RawVarDeclContext):
-        typename = ctx.getChild(0).getText()
+        typename = self.visit(ctx.getChild(0))
         name = ctx.getChild(1).getText()
-        self.variables[name] = {}
-        self.variables[name]["addr"] = self.current_address
+        self.variables[name] = {"type":typename, "addr":self.current_address}
         self.emit(f"# Объявление переменной {name} типа {typename}\n")
         self.current_address += 1
 
@@ -90,8 +89,7 @@ class VisitorCompile(mrlangVisitor):
                 self.emit(f"or {temp_reg}, {temp_reg}, {temp_temp_reg}\n")
                 self.free_reg(int(temp_temp_reg[1]))
             elif op == "==":
-                self.emit(f"xor {temp_reg}, {a}, {b}\n")
-                self.emit(f"seq {temp_reg}, {temp_reg}, x0\n")
+                self.emit(f"seq {temp_reg}, {a}, {b}\n")
             elif op == "!=":
                 self.emit(f"sne {temp_reg}, {a}, {b}\n")
             elif op == "&&":
@@ -127,18 +125,28 @@ class VisitorCompile(mrlangVisitor):
         return temp_reg
     
     def visitFilledVarDecl(self, ctx: mrlangParser.FilledVarDeclContext):
-        typename = ctx.getChild(0).getText()
+        typename = self.visit(ctx.getChild(0))
         name = ctx.getChild(1).getText()
         self.variables[name] = {"type":typename, "addr":self.current_address}
         self.current_address += 1
         value = self.visit(ctx.getChild(3))
-        res_reg = self.parseExpression(value)
+        if (typename != value["type"]):
+            raise ValueError("Wrong assigment type")
+        res_reg = self.parseExpression(value["value"])
         addr = self.variables[name]["addr"]
         self.emit(f"sw x0, {addr}, {res_reg}\n")
         self.free_reg(int(res_reg[1]))
+    
+    def visitTypeName(self, ctx:mrlangParser.TypeNameContext):
+        if (ctx.getText() == "schetnoe"):
+            return "int"
+        if (ctx.getText() == "slovesnoe"):
+            return "string"
+        if (ctx.getText() == "dvoyakoe"):
+            return "bool"
 
     def visitAssignment(self, ctx: mrlangParser.AssignmentContext):
-        self.visitRawAssigment(ctx.getChild(0))
+        self.visit(ctx.getChild(0))
 
 
     def visitRawAssigment(self, ctx: mrlangParser.RawAssigmentContext):
@@ -147,8 +155,12 @@ class VisitorCompile(mrlangVisitor):
             raise ValueError(f"Переменная {name} не объявлена\n")
         address = self.variables[name]["addr"]
         value = self.visit(ctx.getChild(2))
+        pred = self.variables[name]["type"] == "string" or value["type"] == "string"
+        pred = pred and (self.variables[name]["type"] != "string" or value["type"] != "string")
+        if (pred):
+            raise ValueError("Wrong assigment")
         # self.emit(f"# Присваивание переменной {name}\n")
-        res_reg = self.parseExpression(value)
+        res_reg = self.parseExpression(value["value"])
         self.emit(f"sw x0, {address}, {res_reg}\n")
         self.free_reg(int(res_reg[1]))
 
@@ -157,26 +169,35 @@ class VisitorCompile(mrlangVisitor):
             return self.visit(ctx.getChild(0))
         elif ctx.getChildCount() == 3:
             if ctx.getChild(0).getText() == '(':
-                return f"({self.visit(ctx.getChild(1))})"
+                child = self.visit(ctx.getChild(1))
+                text = child["value"]
+                return prepareVal(f"({text})", child["type"])
             else:
                 left = self.visit(ctx.getChild(0))
                 right = self.visit(ctx.getChild(2))
                 operator = ctx.getChild(1).getText()
-                return f"{left}{operator}{right}"
+                if (left["type"] != right["type"]):
+                    raise ValueError("Wrong operator types")
+                left_text = left["value"]
+                right_text = right["value"]
+                return prepareVal(f"{left_text}{operator}{right_text}", left["type"])
         else:
-            return self.visit(ctx.getChild(1)) if (ctx.getChildCount() == 2) else self.visit(ctx.getChild(0)) # TODO negative numbers
+            value = ctx.getChild(1).getText()
+            temp_reg = f"x{self.get_free_reg()}"
+            self.emit(f"li {temp_reg}, -{value}\n")
+            return prepareVal(temp_reg, "int")
 
     def visitNumParsed(self, ctx: mrlangParser.NumParsedContext):
         value = ctx.getText()
         temp_reg = f"x{self.get_free_reg()}"
         self.emit(f"li {temp_reg}, {value}\n")
-        return temp_reg
+        return prepareVal(temp_reg, "int")
     
     def visitBoolParsed(self, ctx: mrlangParser.BoolParsedContext):
         value = 1 if ctx.getText() == "dobro" else 0
         temp_reg = f"x{self.get_free_reg()}" 
         self.emit(f"li {temp_reg}, {value}\n")
-        return temp_reg
+        return prepareVal(temp_reg, "bool")
 
     def visitStringParsed(self, ctx: mrlangParser.StringParsedContext):
         string = ctx.getText().replace("\"", "")
@@ -190,7 +211,7 @@ class VisitorCompile(mrlangVisitor):
         self.emit(f"sw x0, {self.current_address}, {temp_reg}\n")
         self.current_address += 1
         self.emit(f"li {temp_reg}, {start_addr}\n")
-        return temp_reg
+        return prepareVal(temp_reg, "string")
     
     def visitIdName(self, ctx: mrlangParser.IdNameContext):
         name = ctx.getText()
@@ -199,22 +220,27 @@ class VisitorCompile(mrlangVisitor):
         address = self.variables[name]["addr"]
         temp_reg = f"x{self.get_free_reg()}"
         self.emit(f"lw {temp_reg}, x0, {address}\n")
-        return temp_reg
+        return prepareVal(temp_reg, self.variables[name]["type"])
 
     def visitPrint(self, ctx: mrlangParser.PrintContext):
         value = self.visit(ctx.getChild(2))
-        res_reg = self.parseExpression(value)
-
-        loop_label = self.new_label("PRINT_START")
-        end_label = self.new_label("PRINT_END")
-
-        self.emit(f"{loop_label}:\n")
-        self.emit(f"lw x31, {res_reg}, 0\n")
-        self.emit(f"beq x31, x0, {end_label}\n")
-        self.emit(f"ewrite x31\n")
-        self.emit(f"addi {res_reg}, {res_reg}, 1\n")
-        self.emit(f"jal x0, {loop_label}\n")
-        self.emit(f"{end_label}:\n")
+        res_reg = self.parseExpression(value["value"])
+        
+        if (value["type"] == "string"):
+            loop_label = self.new_label("PRINT_START")
+            end_label = self.new_label("PRINT_END") 
+            self.emit(f"{loop_label}:\n")
+            self.emit(f"lw x31, {res_reg}, 0\n")
+            self.emit(f"beq x31, x0, {end_label}\n")
+            self.emit(f"ewrite x31\n")
+            self.emit(f"addi {res_reg}, {res_reg}, 1\n")
+            self.emit(f"jal x0, {loop_label}\n")
+            self.emit(f"{end_label}:\n")
+        elif (value["type"] == "int"):
+            pass
+        elif (value["type"] == "bool"):
+            pass
+        self.free_reg(int(res_reg[1]))
 
 
     def visitWhilestmt(self, ctx: mrlangParser.WhilestmtContext):
@@ -223,7 +249,9 @@ class VisitorCompile(mrlangVisitor):
 
         self.emit(f"{loop_label}: # Начало while\n")
         condition = self.visit(ctx.getChild(2))  # Условие
-        res_reg = self.parseExpression(condition)
+        if (condition["type"] == "string"):
+            raise ValueError("String can't be condition")
+        res_reg = self.parseExpression(condition["value"])
         self.emit(f"beq {res_reg}, x0, {end_label}\n")
 
         self.visit(ctx.getChild(4))  # Тело цикла
@@ -239,7 +267,9 @@ class VisitorCompile(mrlangVisitor):
         self.visit(ctx.getChild(2))  # Объявление переменной
         self.emit(f"{init_label}: # Начало for\n")
         condition = self.visit(ctx.getChild(4)) 
-        res_reg = self.parseExpression(condition)
+        if (condition["type"] == "string"):
+            raise ValueError("String can't be condition")
+        res_reg = self.parseExpression(condition["value"])
         self.emit(f"beq {res_reg}, x0, {end_label}\n")
 
         # Тело цикла
@@ -255,7 +285,9 @@ class VisitorCompile(mrlangVisitor):
         end_label = self.new_label("IF_END")
 
         condition = self.visit(ctx.getChild(2))
-        res_reg = self.parseExpression(condition)
+        if (condition["type"] == "string"):
+            raise ValueError("String can't be condition")
+        res_reg = self.parseExpression(condition["value"])
         self.emit(f"# Условие if\n")
         self.emit(f"beq {res_reg}, x0, {cond_label}\n")
 
@@ -277,7 +309,9 @@ class VisitorCompile(mrlangVisitor):
         # Условие elif
         condition = self.visit(ctx.getChild(2))
         self.emit(f"# Условие elif\n")
-        res_reg = self.parseExpression(condition)
+        if (condition["type"] == "string"):
+            raise ValueError("String can't be condition")
+        res_reg = self.parseExpression(condition["value"])
         self.emit(f"beq {res_reg}, x0, {next_label}\n")
 
         # Тело elif

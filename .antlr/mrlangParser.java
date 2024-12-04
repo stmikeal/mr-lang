@@ -269,14 +269,14 @@ public class mrlangParser extends Parser {
 			return getRuleContext(ExprContext.class,i);
 		}
 		public TerminalNode MINUS() { return getToken(mrlangParser.MINUS, 0); }
+		public NumParsedContext numParsed() {
+			return getRuleContext(NumParsedContext.class,0);
+		}
 		public BoolParsedContext boolParsed() {
 			return getRuleContext(BoolParsedContext.class,0);
 		}
 		public IdNameContext idName() {
 			return getRuleContext(IdNameContext.class,0);
-		}
-		public NumParsedContext numParsed() {
-			return getRuleContext(NumParsedContext.class,0);
 		}
 		public StringParsedContext stringParsed() {
 			return getRuleContext(StringParsedContext.class,0);
@@ -326,7 +326,7 @@ public class mrlangParser extends Parser {
 				setState(66);
 				match(MINUS);
 				setState(67);
-				expr(5);
+				numParsed();
 				}
 				break;
 			case BOOL:
@@ -1280,7 +1280,7 @@ public class mrlangParser extends Parser {
 		"\u0000\u0000;:\u0001\u0000\u0000\u0000<\u0003\u0001\u0000\u0000\u0000"+
 		"=>\u0006\u0002\uffff\uffff\u0000>?\u0005\u0001\u0000\u0000?@\u0003\u0004"+
 		"\u0002\u0000@A\u0005\u0002\u0000\u0000AI\u0001\u0000\u0000\u0000BC\u0005"+
-		"\u0015\u0000\u0000CI\u0003\u0004\u0002\u0005DI\u0003\u0018\f\u0000EI\u0003"+
+		"\u0015\u0000\u0000CI\u0003\u0014\n\u0000DI\u0003\u0018\f\u0000EI\u0003"+
 		"\u0012\t\u0000FI\u0003\u0014\n\u0000GI\u0003\u0016\u000b\u0000H=\u0001"+
 		"\u0000\u0000\u0000HB\u0001\u0000\u0000\u0000HD\u0001\u0000\u0000\u0000"+
 		"HE\u0001\u0000\u0000\u0000HF\u0001\u0000\u0000\u0000HG\u0001\u0000\u0000"+

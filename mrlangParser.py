@@ -36,7 +36,7 @@ def serializedATN():
         20,0,58,60,3,42,21,0,59,52,1,0,0,0,59,53,1,0,0,0,59,54,1,0,0,0,59,
         55,1,0,0,0,59,56,1,0,0,0,59,57,1,0,0,0,59,58,1,0,0,0,60,3,1,0,0,
         0,61,62,6,2,-1,0,62,63,5,1,0,0,63,64,3,4,2,0,64,65,5,2,0,0,65,73,
-        1,0,0,0,66,67,5,21,0,0,67,73,3,4,2,5,68,73,3,24,12,0,69,73,3,18,
+        1,0,0,0,66,67,5,21,0,0,67,73,3,20,10,0,68,73,3,24,12,0,69,73,3,18,
         9,0,70,73,3,20,10,0,71,73,3,22,11,0,72,61,1,0,0,0,72,66,1,0,0,0,
         72,68,1,0,0,0,72,69,1,0,0,0,72,70,1,0,0,0,72,71,1,0,0,0,73,84,1,
         0,0,0,74,75,10,7,0,0,75,76,3,26,13,0,76,77,3,4,2,8,77,83,1,0,0,0,
@@ -360,16 +360,16 @@ class mrlangParser ( Parser ):
         def MINUS(self):
             return self.getToken(mrlangParser.MINUS, 0)
 
+        def numParsed(self):
+            return self.getTypedRuleContext(mrlangParser.NumParsedContext,0)
+
+
         def boolParsed(self):
             return self.getTypedRuleContext(mrlangParser.BoolParsedContext,0)
 
 
         def idName(self):
             return self.getTypedRuleContext(mrlangParser.IdNameContext,0)
-
-
-        def numParsed(self):
-            return self.getTypedRuleContext(mrlangParser.NumParsedContext,0)
 
 
         def stringParsed(self):
@@ -427,7 +427,7 @@ class mrlangParser ( Parser ):
                 self.state = 66
                 self.match(mrlangParser.MINUS)
                 self.state = 67
-                self.expr(5)
+                self.numParsed()
                 pass
             elif token in [16]:
                 self.state = 68

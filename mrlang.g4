@@ -14,7 +14,7 @@ expr:
 	'(' expr ')'
 	| expr aritOperator expr
 	| expr compOperator expr
-	| MINUS expr
+	| MINUS numParsed
 	| boolParsed
 	| idName
 	| numParsed
